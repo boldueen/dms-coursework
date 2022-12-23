@@ -1,11 +1,13 @@
 ### dms-coursework run
 
 
-``bash
+```bash
 
-git pull 
+git pull git@github.com:boldueen/dms-coursework.git
+cd dms-coursework
 
 ```
+
 
 
 ```bash
