@@ -3,7 +3,7 @@
 
 ```bash
 
-git pull git@github.com:boldueen/dms-coursework.git
+git clone git@github.com:boldueen/dms-coursework.git
 cd dms-coursework
 
 ```
