@@ -9,15 +9,6 @@ app = FastAPI(title="web shop")
 
 app.include_router(api_router, prefix="/api")
 
-# origins = ["*"]
-# app.add_middleware(
-#     allow_origins=origins,
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
-
-
 
 @app.on_event("startup")
 def startup():
