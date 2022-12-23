@@ -66,21 +66,14 @@ class BuyOffer(BaseModel):
     quantity: int
 
 
-# class GetUser(BaseModel):
-#     username: str | None = None
-#     password: str | None = None
-    
-
-# class User(BaseModel):
-#     user_id: int | None = None 
-#     username: str | None = None
-#     full_name: str | None = None
-#     email: str | None = None
-#     hashed_pass: str | None = None
-#     balance: condecimal(multiple_of=Decimal('0.25')) | None = None
-#     user_role: str | None = None
+class ShoppestUser(BaseModel):
+    username: str
+    orders_done: int 
 
 
+class RichiestUser(BaseModel):
+    username: str
+    balance: float 
     
 
 class CreateUser(BaseModel):
@@ -89,4 +82,9 @@ class CreateUser(BaseModel):
     email: str
     full_name: str 
 
+
+class Office(BaseModel):
+    office_id: int 
+    address: str 
+    postcode: str
 

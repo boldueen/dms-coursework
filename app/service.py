@@ -7,8 +7,9 @@ from jose import jwt, JWTError
 
 from app.database import get_connection
 from app.settings import SECRET_KEY, ALGORITHM
-from app.shemas import TokenData, userInDb, CreateUser
-from app.shemas import Order, Item, ItemToSearh, BuyOffer
+from app.shemas import TokenData 
+from app.shemas import userInDb, CreateUser, ShoppestUser, RichiestUser
+from app.shemas import Order, Item, ItemToSearh, BuyOffer, Office
 import psycopg2
 
 from pydantic import BaseModel
@@ -16,6 +17,10 @@ from pydantic import BaseModel
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/token")
 
+def is_admin(role: str) -> bool:
+    if role == 'SHOP_ADMIN':
+        return True
+    return False
 
 def verify_password(username: str, plain_password: str) -> bool:
     conn = get_connection()
@@ -339,23 +344,6 @@ def add_item_to_order_by_id(order_id: int, item_id: int, current_user: userInDb)
         raise HTTPException(status.HTTP_423_LOCKED, detail=f'order number:{order_id}. is not your order or it was deleted')
 
 
-    # for order in user_order:
-    #     print(order['is_payed'])
-    #     if order['is_payed']:
-    #         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail='order has already payed, you cannot change items in it')
-
-    # cursor.execute(
-    #     f"""
-    #         SELECT * FROM items where item_id={item_id};
-    #     """
-    # )
-    # items = cursor.fetchall()
-
-
-    # if len(items) == 0:
-    #     raise HTTPException(status.HTTP_423_LOCKED, detail=f'item number:{item_id}. NO SUCH item')
-
-
     try:
         cursor.execute(
             f"""
@@ -416,3 +404,156 @@ def read_buy_offers(current_user: userInDb):
         return e.args
 
 
+def get_offices():
+    conn = get_connection()
+    cursor = conn.cursor(cursor_factory = psycopg2.extras.DictCursor)
+
+    cursor.execute(
+        f"""
+            SELECT * FROM  offices;
+        """
+    )
+    offices = cursor.fetchall()
+    if len(offices) == 0:
+        return {
+            'message':'no offices avaliable'
+        }
+
+    offices_response = list()
+    for r in offices:
+        it = Office(
+            office_id = r['office_id'],
+            address = r['address'],
+            postcode = r['postcode']
+        )
+
+        offices_response.append(it) 
+        
+
+    return offices_response
+
+
+def give_order_to_user(order_id: int, admin: userInDb):
+    is_admin(admin.role)
+    if admin.role != 'SHOP_ADMIN':
+        raise HTTPException(status.HTTP_403_FORBIDDEN)
+
+    conn = get_connection()
+    cursor = conn.cursor(cursor_factory = psycopg2.extras.DictCursor)
+    
+    cursor.execute(
+        f"""
+            SELECT is_payed FROM orders WHERE order_id = {order_id}
+        """
+    )
+
+    
+    order = cursor.fetchall()
+
+    if len(order) == 0:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, 
+            detail=f'order num.{order_id} does NOT EXIST'
+            )
+
+    for r in order:
+        if r['is_payed'] is False:
+            raise HTTPException(
+                status.HTTP_402_PAYMENT_REQUIRED, 
+                detail=f'order num.{order_id} is NOT PAYED'
+            )
+
+
+    cursor.execute(
+        f"""
+        UPDATE orders 
+            SET is_given = true 
+            WHERE order_id = {order_id};
+        """
+        )
+
+    conn.commit()
+
+    return {
+        'message':f'order num.{order_id} was GIVEN_OUT'
+    }
+
+
+def get_shoppest_users():
+    conn = get_connection()
+    cursor = conn.cursor(cursor_factory = psycopg2.extras.DictCursor)
+    cursor.execute(
+        """
+            SELECT * FROM best_users_view;
+        """
+    )
+
+    best_users = cursor.fetchall()
+
+    resp_best_users = list()
+
+    for r in best_users:
+        it = ShoppestUser(
+            username=r['username'],
+            orders_done=r['payed_orders']
+        )
+
+        resp_best_users.append(it)
+
+    return resp_best_users
+
+
+def get_richest_users():
+    conn = get_connection()
+    cursor = conn.cursor(cursor_factory = psycopg2.extras.DictCursor)
+    cursor.execute(
+        """
+            SELECT * FROM richest_user_view;
+        """
+    )
+
+    rishest_users = cursor.fetchall()
+
+    resp_rishest_users = list()
+
+    for r in rishest_users:
+        it = RichiestUser(
+            username=r['username'],
+            balance=r['balance_usd']
+        )
+
+        resp_rishest_users.append(it)
+
+    return resp_rishest_users
+
+
+def create_order(office_id: int, current_user: userInDb):
+    conn = get_connection()
+    cursor = conn.cursor(cursor_factory = psycopg2.extras.DictCursor)
+
+
+    offices = get_offices()
+
+    if office_id > len(offices):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail=f'office with id: {office_id} does NOT EXIST'
+            )
+
+    cursor.execute(
+        f"""
+            INSERT INTO 
+                orders (office_id, username)
+                VALUES ({office_id}, '{current_user.username}');
+
+        """
+    )
+
+    conn.commit()
+
+    return {
+        'message':'Orders created SUCCESSFULLY. check your orders'
+    }
+
+
+    

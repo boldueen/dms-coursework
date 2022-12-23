@@ -5,7 +5,6 @@ dotenv.dotenv_path = ("../.env")
 dotenv.load_dotenv(dotenv.find_dotenv())
 
 
-
 INIT_DB=True
 
 SECRET_KEY=os.environ.get('SECRET_KEY')

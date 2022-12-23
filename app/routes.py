@@ -4,15 +4,16 @@ from psycopg2.extras import DictCursor
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
+from app.shemas import ItemToSearh, CreateUser
+
 from app.database import get_connection
 from app.service import create_access_token
 from app.service import authenticate_user, get_current_user, register_user
-from app.service import fill_balance, get_users_order, pay_order_by_id
+from app.service import fill_balance, get_users_order, pay_order_by_id, create_order
 from app.service import get_items_by_name
-from app.service import read_buy_offers, add_item_to_order_by_id
-
-from app.shemas import ItemToSearh, CreateUser
-
+from app.service import read_buy_offers, add_item_to_order_by_id, give_order_to_user
+from app.service import get_richest_users, get_shoppest_users
+from app.service import get_offices
 
 from app.settings import ACCESS_TOKEN_EXPIRE_MINUTES
 
@@ -74,9 +75,19 @@ def add_item_to_order(order_id: int, item_id: int, current_user = Depends(get_cu
     return add_item_to_order_by_id(order_id, item_id, current_user)
 
 
-@api_router.get('/items', tags=['items'])
+@api_router.post('/order', tags=['user'])
+def create_order_for_me(office_id: int, current_user = Depends(get_current_user)):
+    return create_order(office_id, current_user)
+
+
+@api_router.get('/items', tags=['info'])
 def read_items(data: ItemToSearh = Depends()):
     return get_items_by_name(data)
+
+
+@api_router.get('/offices', tags=['info'])
+def read_offices():
+    return get_offices()
 
 
 @api_router.get('/offers', tags=['admin'])
@@ -84,4 +95,16 @@ def read_offers_to_buy(current_user = Depends(get_current_user)):
     return read_buy_offers(current_user)
 
 
+@api_router.post('/orders', tags=['admin'])
+def give_order(order_id:int, current_user = Depends(get_current_user)):
+    return give_order_to_user(order_id, current_user)
 
+
+@api_router.get('/statistics/richest_users', tags=['statictics'])
+def richest_users():
+    return get_richest_users()
+
+
+@api_router.get('/statistics/shoppest_users', tags=['statictics'])
+def shoppest_users():
+    return get_shoppest_users()

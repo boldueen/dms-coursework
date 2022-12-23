@@ -342,11 +342,13 @@ AS
 			VALUES (_order_id, _item_id);
 		
 		current_order_total_usd := (
-			SELECT price FROM items WHERE item_id = _item_id	
+			SELECT total_usd FROM orders WHERE order_id = _order_id	
 		);
 		
 		item_price:= (SELECT price FROM items WHERE item_id =_item_id);
-		UPDATE orders SET total_usd = current_order_total_usd+item_price WHERE order_id = _order_id;
+		UPDATE orders 
+		SET total_usd = current_order_total_usd+item_price 
+		WHERE order_id = _order_id;
 		
 		
 		
@@ -447,12 +449,12 @@ AS
 
 
 -- VIEW TOP 5 buyers in the SHOP
-
-CREATE OR REPLACE VIEW best_users 
+CREATE OR REPLACE VIEW best_users_view
 AS
 SELECT username, 
 	   COUNT(is_payed) AS payed_orders
 	FROM orders 
+	WHERE is_payed IS TRUE
 	GROUP BY username
 	ORDER BY payed_orders DESC
 	LIMIT 5;
