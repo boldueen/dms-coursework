@@ -1,4 +1,4 @@
-### dms-coursework run
+## dms-coursework run
 
 
 ```bash
@@ -9,6 +9,7 @@ cd dms-coursework
 ```
 
 
+#### configure your .env file
 
 ```bash
 
@@ -16,7 +17,7 @@ touch .env
 
 ```
 
-# configure your .env file
+
 
 
 ```bash
