@@ -19,7 +19,7 @@ touch .env
 
 
 
-
+#### and run the app...
 ```bash
 
 docker-compose up
