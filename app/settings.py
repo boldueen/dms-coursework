@@ -6,9 +6,11 @@ dotenv.load_dotenv(dotenv.find_dotenv())
 
 
 
+INIT_DB=True
+
 SECRET_KEY=os.environ.get('SECRET_KEY')
 ALGORITHM=os.environ.get('ALGORITHM')
-ACCESS_TOKEN_EXPIRE_MINUTES=os.environ.get('ACCESS_TOKEN_EXPIRE_MINUTES')
+ACCESS_TOKEN_EXPIRE_MINUTES=int(os.environ.get('ACCESS_TOKEN_EXPIRE_MINUTES'))
 
 DBNAME=os.environ.get('DBNAME')
 DB_USER=os.environ.get('DB_USER')

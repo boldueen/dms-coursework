@@ -67,7 +67,7 @@ CREATE TABLE orders
 (
 	order_id serial NOT NULL UNIQUE,
 	is_payed boolean DEFAULT 'False' NOT NULL,
-	total_usd decimal NOT NULL,
+	total_usd decimal NOT NULL DEFAULT 0,
 	is_given boolean DEFAULT 'False' NOT NULL,
 	office_id int NOT NULL,
 	username varchar(50) NOT NULL,
@@ -264,16 +264,13 @@ VALUES
 	
 
 
-
-
-	
 INSERT INTO orders 
 	(username, is_payed, total_usd, is_given, office_id)
 VALUES
-	('alez_pro', False, 23.61, False, 1),
-	('jojo', True, 34.15, False, 1),
-	('bbolq', False, 12.36, False, 2),
-	('alez_pro', True, 4.99, False, 2);
+	('alez_pro', False, 0, False, 1),
+	('jojo', False, 0, False, 1),
+	('bbolq', False, 0, False, 2),
+	('alez_pro', False, 0, False, 2);
 
 
 
@@ -305,7 +302,7 @@ CREATE POLICY get_admin_orders
 
 
 
--- FUNCTIONS
+-- OTHER FUNCTIONS & PROCEDURES
 -- authenticate user
 CREATE OR REPLACE FUNCTION is_password_correct(_username varchar(50), _password varchar)
 	RETURNS boolean AS
@@ -317,6 +314,45 @@ CREATE OR REPLACE FUNCTION is_password_correct(_username varchar(50), _password 
 		
 	END
 	$$ LANGUAGE plpgsql;
+
+
+
+CREATE OR REPLACE PROCEDURE add_item_to_order(_order_id int, _item_id int)
+AS
+	$$
+	DECLARE item_price decimal;
+	DECLARE current_order_total_usd decimal;
+	BEGIN
+		
+		IF (SELECT is_payed from orders WHERE order_id = _order_id) IS TRUE
+		THEN
+			RAISE EXCEPTION 'order % already payed', _order_id
+      		USING HINT = 'you cannot change items in payed order';
+		END IF;
+		
+		IF (SELECT COUNT(*) from items WHERE item_id = _item_id) = 0
+		THEN
+			RAISE EXCEPTION 'item % does NOT EXIST', _item_id
+      		USING HINT = 'choose another item';
+		END IF;
+		
+		
+		
+		INSERT INTO orders_items(order_id, item_id)
+			VALUES (_order_id, _item_id);
+		
+		current_order_total_usd := (
+			SELECT price FROM items WHERE item_id = _item_id	
+		);
+		
+		item_price:= (SELECT price FROM items WHERE item_id =_item_id);
+		UPDATE orders SET total_usd = current_order_total_usd+item_price WHERE order_id = _order_id;
+		
+		
+		
+	END
+	$$ LANGUAGE plpgsql;
+	
 
 
 -- add random items 
@@ -347,6 +383,9 @@ $$
 	END;
 $$ LANGUAGE plpgsql;
 CALL generate_random_items();
+
+
+
 
 
 
@@ -406,6 +445,21 @@ AS
 
 
 
+
+-- VIEW TOP 5 buyers in the SHOP
+
+CREATE OR REPLACE VIEW best_users 
+AS
+SELECT username, 
+	   COUNT(is_payed) AS payed_orders
+	FROM orders 
+	GROUP BY username
+	ORDER BY payed_orders DESC
+	LIMIT 5;
+
+
+
+
 DROP INDEX IF EXISTS ind_usernames_users;
 DROP INDEX IF EXISTS ind_usernames_orders;
 DROP INDEX IF EXISTS ind_name_items;
@@ -416,6 +470,3 @@ CREATE INDEX ind_usernames_orders on orders(username);
 -- index for 500-1000 values
 CREATE INDEX ind_name_items on items(name);
 
-
-
--- asdasdasd

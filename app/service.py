@@ -7,8 +7,8 @@ from jose import jwt, JWTError
 
 from app.database import get_connection
 from app.settings import SECRET_KEY, ALGORITHM
-from app.shemas import TokenData, userInDb, Item, ItemToSearh, CreateUser, Order
-
+from app.shemas import TokenData, userInDb, CreateUser
+from app.shemas import Order, Item, ItemToSearh, BuyOffer
 import psycopg2
 
 from pydantic import BaseModel
@@ -72,6 +72,7 @@ def authenticate_user(username: str, plain_password: str):
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
+    print(timedelta)
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
@@ -142,7 +143,7 @@ def get_items_by_name(data: ItemToSearh) -> list[Item]:
         """
     )
     items = cursor.fetchall()
-    if items is None:
+    if len(items) == 0:
         return {
             'message':'no such items in our shop((('
         }
@@ -316,5 +317,102 @@ def pay_order_by_id(order_id_to_pay: int, current_user: userInDb):
             'message':f'{exc_msg}'
         }
 
+
+def add_item_to_order_by_id(order_id: int, item_id: int, current_user: userInDb):
+    
+    if order_id <=0 or item_id <=0:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail='id\'s must be plural')
+    
+
+    conn = get_connection()
+    cursor = conn.cursor(cursor_factory = psycopg2.extras.DictCursor)
+
+    cursor.execute(
+        f"""
+            SELECT * FROM orders where order_id={order_id} and username='{current_user.username}';
+        """
+    )
+    user_order = cursor.fetchall()
+    print(user_order)
+
+    if len(user_order) == 0:
+        raise HTTPException(status.HTTP_423_LOCKED, detail=f'order number:{order_id}. is not your order or it was deleted')
+
+
+    # for order in user_order:
+    #     print(order['is_payed'])
+    #     if order['is_payed']:
+    #         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail='order has already payed, you cannot change items in it')
+
+    # cursor.execute(
+    #     f"""
+    #         SELECT * FROM items where item_id={item_id};
+    #     """
+    # )
+    # items = cursor.fetchall()
+
+
+    # if len(items) == 0:
+    #     raise HTTPException(status.HTTP_423_LOCKED, detail=f'item number:{item_id}. NO SUCH item')
+
+
+    try:
+        cursor.execute(
+            f"""
+                CALL add_item_to_order({order_id},{item_id});
+            """
+        )
+        conn.commit()
+
+        return {
+            'message':f'item num.{item_id} added to order num.{order_id}'
+        }
+    except Exception as e:
+        return{
+            f'message':'error. {e.args}'
+        }
+
+
+def read_buy_offers(current_user: userInDb):
+    if current_user.role != 'SHOP_ADMIN':
+        raise HTTPException(status.HTTP_403_FORBIDDEN)
+
+    
+    conn = get_connection()
+    cursor = conn.cursor(cursor_factory = psycopg2.extras.DictCursor)
+
+    try:
+
+        cursor.execute(
+            f"""
+                SET ROLE {current_user.username};
+                SELECT * FROM buy_offers;
+            """
+        )
+
+
+
+        offers = cursor.fetchall()
+        if offers is None:
+            return {
+                'message':'цу рф((('
+            }
+
+        offers_response = list()
+        for r in offers:
+            it = BuyOffer(
+                supplier_id=r['supplier_id'],
+                item_id=r['item_id'],
+                item_name=r['item_name'],
+                offer_id=r['offer_id'],
+                quantity=r['quantity']
+            )
+            offers_response.append(it) 
+        
+
+        return offers_response
+
+    except Exception as e:
+        return e.args
 
 

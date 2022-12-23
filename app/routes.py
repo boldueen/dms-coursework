@@ -9,6 +9,7 @@ from app.service import create_access_token
 from app.service import authenticate_user, get_current_user, register_user
 from app.service import fill_balance, get_users_order, pay_order_by_id
 from app.service import get_items_by_name
+from app.service import read_buy_offers, add_item_to_order_by_id
 
 from app.shemas import ItemToSearh, CreateUser
 
@@ -59,7 +60,7 @@ def fill_my_balance(usd_to_fill: float, current_user = Depends(get_current_user)
 
 
 @api_router.put('/order', tags=['user'])
-def pay_order(order_id_to_pay:int, current_user = Depends(get_current_user)):
+def pay_for_order(order_id_to_pay:int, current_user = Depends(get_current_user)):
     return pay_order_by_id(order_id_to_pay, current_user)
 
 
@@ -68,8 +69,19 @@ def get_all_my_orders(current_user = Depends(get_current_user)):
     return get_users_order(current_user)
 
 
+@api_router.put('/order/item', tags=['user'])
+def add_item_to_order(order_id: int, item_id: int, current_user = Depends(get_current_user)):
+    return add_item_to_order_by_id(order_id, item_id, current_user)
+
+
 @api_router.get('/items', tags=['items'])
 def read_items(data: ItemToSearh = Depends()):
     return get_items_by_name(data)
+
+
+@api_router.get('/offers', tags=['admin'])
+def read_offers_to_buy(current_user = Depends(get_current_user)):
+    return read_buy_offers(current_user)
+
 
 

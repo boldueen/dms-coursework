@@ -58,6 +58,13 @@ class Order(BaseModel):
     username: str
 
 
+class BuyOffer(BaseModel):
+    supplier_id: int
+    item_id: int 
+    item_name: str 
+    offer_id: int 
+    quantity: int
+
 
 # class GetUser(BaseModel):
 #     username: str | None = None
